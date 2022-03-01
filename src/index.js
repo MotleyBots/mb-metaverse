@@ -86,8 +86,7 @@ function createRoom() {
         let type = Math.floor(Math.random() * 5);
         let rotation = Math.floor(Math.random() * 6);
         console.log(`type: ${type} rotation: ${rotation}`);
-        addMesh( x, y, z, type, rotation);
-        roomDNA.push(([x,y,z]));
+        roomDNA.push(([ x, y, z, type, rotation]));
         let rand = Math.random();
         if(rand > .6666) {
             x++;
@@ -96,6 +95,7 @@ function createRoom() {
         } else {
             z++;
         }
+        shapeLength++;
     }
 /*
     if (isDnaUnique(dnaList,roomDNA)) {
@@ -104,7 +104,11 @@ function createRoom() {
         resetShape();
     }
 */
-    // Moving shape components so that they are centered
+
+    buildRoom( roomDNA );
+    // console.log( roomDNA.length );
+
+    // Moving shape components so that they are centered - Removed for room eventually
 
     let [shapeX, shapeY, shapeZ] = [((x)/2.0),((y)/2.0),((z)/2.0)];
     room.children.forEach(child => {
@@ -129,6 +133,15 @@ function createRoom() {
 
 }
 
+// Abstracting out the mesh constructor to work off 'DNA'
+
+function buildRoom( roomDNA ) {                         // DNA: x, y, z, type, rotation
+    roomDNA.forEach( ( meshInfo ) => {
+        // console.log(meshInfo);
+        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4] );
+    });
+}
+
 // Adds a Cube to the Shape
 
 function addMesh(x, y, z, type, rotation){
@@ -146,37 +159,37 @@ function getMesh( type, rotation, texture = cubeTexture ) {
     let mesh;
     switch (type) {
         case 0:
-            tempGeometry = new THREE.BoxGeometry( 1, 1, 1 );                // x, y, z
+            tempGeometry = new THREE.BoxGeometry( 1, 1, 1 );                                        // x, y, z
             setMeshRotation(tempGeometry, rotation );
             mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
-            console.log('cube');
+            // console.log('cube');
             return mesh
         case 1:
-            tempGeometry = new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );             // r, h, rSeg, hSeg
+            tempGeometry = new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );           // r, h, rSeg, hSeg
             setMeshRotation(tempGeometry, rotation );
             mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
-            console.log('cone');
+            // console.log('cone');
             return mesh
         case 2:
-            tempGeometry = new THREE.CylinderGeometry( .5, .5, 1, 4, 1, false, 0.7853982 );     // rTop, rBottom, h, rSeg, hSeg
+            tempGeometry = new THREE.CylinderGeometry( .707106, .353553, 1, 4, 1, false, 0.7853982 );         // rTop, rBottom, h, rSeg, hSeg
             setMeshRotation(tempGeometry, rotation );
             mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
-            console.log('cylinder');
+            // console.log('cylinder');
             return mesh
         case 3:
-            tempGeometry = new THREE.SphereGeometry( .5, 20, 16 );           // r, rSeg, hSeg
+            tempGeometry = new THREE.SphereGeometry( .5, 20, 16 );                                  // r, rSeg, hSeg
             setMeshRotation(tempGeometry, rotation );
             mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
-            console.log('sphere');
+            // console.log('sphere');
             return mesh
         case 4:
-            tempGeometry = new THREE.TorusGeometry( .4, 0.1, 16, 16 );        // r, tR, rSeg, tSeg
+            tempGeometry = new THREE.TorusGeometry( .4, 0.1, 16, 16 );                              // r, tR, rSeg, tSeg
             setMeshRotation(tempGeometry, rotation );
             mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
-            console.log('torus');
+            // console.log('torus');
             return mesh
         default:
-            return THREE.Mesh(cube, cubeMaterial);
+            return new THREE.Mesh(cube, cubeMaterial);
     }
 }
 
@@ -184,27 +197,27 @@ function setMeshRotation( mesh, rotation ) {
     switch (rotation) {
         case 0:
             mesh.rotateX(1.570796);
-            console.log('case 0');
+            // console.log('case 0');
             break;
         case 1:
             mesh.rotateX(-1.570796);
-            console.log('case 1');
+            // console.log('case 1');
             break;
         case 2:
             mesh.rotateY(1.570796);
-            console.log('case 2');
+            // console.log('case 2');
             break;
         case 3:
             mesh.rotateY(-1.570796);
-            console.log('case 3');
+            // console.log('case 3');
             break;
         case 4:
             mesh.rotateZ(1.570796);
-            console.log('case 4');
+            // console.log('case 4');
             break;
         default:
             mesh.rotateZ(-1.570796);
-            console.log('case 5');
+            // console.log('case 5');
             break;
     }
 }
