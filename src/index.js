@@ -1,17 +1,24 @@
 
+// Canvas
 
-// Sizes
+const canvasMain = document.querySelector('canvas.webgl')
 
- const sizes = {
+// Scene
+
+const scene = new THREE.Scene()
+
+// Sizes - Manages Canvas Size Changes
+
+const sizes = {
     width: window.innerWidth,
-    height: window.innerHeight
+    height: 0.9 * window.innerHeight
 }
 
 window.addEventListener('resize', () =>
 {
     // Update sizes
     sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
+    sizes.height = 0.9 * window.innerHeight
 
     // Update camera
     camera.aspect = sizes.width / sizes.height
@@ -22,24 +29,322 @@ window.addEventListener('resize', () =>
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, sizes.width / sizes.height, 0.1, 1000 );
+// Renderer
 
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshBasicMaterial( { color: 0x00ff00, wireframe: true } );
-const cube = new THREE.Mesh( geometry, material );
-scene.add( cube );
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvasMain,
+    alpha: true,
+    antialias: true,
+    preserveDrawingBuffer: true
+});
+renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor( 0xffffff, 0);
 
-camera.position.z = 5;
+// Base camera 
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize( sizes.width, sizes.height );
-document.body.appendChild( renderer.domElement );
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 2000)
+camera.lookAt(0,0,0);
 
-function animate() {
-	requestAnimationFrame( animate );
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
-	renderer.render( scene, camera );
+// Objects & Global Vars
+
+let room = new THREE.Object3D();
+const cube = new THREE.BoxGeometry( 1, 1, 1 );                  // x, y, z
+const cone = new THREE.ConeGeometry( .5, 1, 4 );                // r, h, rSeg, hSeg
+const cylinder = new THREE.CylinderGeometry( .5, .5, 1, 16 );     // rTop, rBottom, h, rSeg, hSeg
+const sphere = new THREE.SphereGeometry( .5, 20, 16 );           // r, rSeg, hSeg
+const torus = new THREE.TorusGeometry( .4, 0.1, 16, 16 );        // r, tR, rSeg, tSeg
+var shapeLength = 0;
+var roomDNA = [];
+var dnaList = [];
+let lights = new THREE.Object3D();
+var outputReady = false;
+
+// Materials
+
+var image = new Image();
+image.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzbMAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5gIIBBcNz4Z5RwAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAEkklEQVR42u3X0QmAMBBEwV2x/5bPGgwIIc5UEDYfj2uSCQC8dJkAAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEABI7t0fODN+Cfilti4QAM4jIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAAICgIAAgIAAICAACAgAAgKAgJgAAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAA+EKTjBkAcIEAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgALHlmBCB9nvDEtAAAAAElFTkSuQmCC';
+
+const cubeTexture = new THREE.Texture()
+cubeTexture.image = image;
+image.onload = function() {
+    cubeTexture.needsUpdate = true;
 }
-animate();
+
+const cubeMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, map: cubeTexture, wireframe: false } );
+// General Use Material
+const material = new THREE.MeshStandardMaterial( {color: 0x00ffff} );
+// Room Creation
+
+function createRoom() {
+
+    let [x,y,z] = [0,0,0]
+
+    // Creates a lazily random configuration of blocks
+    while (shapeLength < 12) {
+
+        let type = Math.floor(Math.random() * 5);
+        let rotation = Math.floor(Math.random() * 6);
+        console.log(`type: ${type} rotation: ${rotation}`);
+        addMesh( x, y, z, type, rotation);
+        roomDNA.push(([x,y,z]));
+        let rand = Math.random();
+        if(rand > .6666) {
+            x++;
+        } else if(rand > .3333) {
+            y++;
+        } else {
+            z++;
+        }
+    }
+/*
+    if (isDnaUnique(dnaList,roomDNA)) {
+        dnaList.push(roomDNA);
+    } else {
+        resetShape();
+    }
+*/
+    // Moving shape components so that they are centered
+
+    let [shapeX, shapeY, shapeZ] = [((x)/2.0),((y)/2.0),((z)/2.0)];
+    room.children.forEach(child => {
+        child.translateX(-shapeX);
+        child.translateY(-shapeY);
+        child.translateZ(-shapeZ);
+    });
+
+    scene.add(room);
+
+    // Calculating distance for Lights and Camera
+    let radius = Math.sqrt(shapeX**2 + shapeZ**2);
+
+    // Lights
+    addLights(0xffffff, radius, shapeY);
+
+    // Camera
+    addCamera(radius, shapeY);
+
+    // Action
+    outputReady = true;
+
+}
+
+// Adds a Cube to the Shape
+
+function addMesh(x, y, z, type, rotation){
+    let nextMesh = getMesh( type, rotation );
+    if(nextMesh != null) {
+        nextMesh.position.set(x,y,z);
+        room.add(nextMesh)
+    }
+    shapeLength++;
+}
+
+function getMesh( type, rotation, texture = cubeTexture ) {
+    let tempGeometry;
+    let tempTexture;
+    let mesh;
+    switch (type) {
+        case 0:
+            tempGeometry = new THREE.BoxGeometry( 1, 1, 1 );                // x, y, z
+            setMeshRotation(tempGeometry, rotation );
+            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            console.log('cube');
+            return mesh
+        case 1:
+            tempGeometry = new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );             // r, h, rSeg, hSeg
+            setMeshRotation(tempGeometry, rotation );
+            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            console.log('cone');
+            return mesh
+        case 2:
+            tempGeometry = new THREE.CylinderGeometry( .5, .5, 1, 4, 1, false, 0.7853982 );     // rTop, rBottom, h, rSeg, hSeg
+            setMeshRotation(tempGeometry, rotation );
+            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            console.log('cylinder');
+            return mesh
+        case 3:
+            tempGeometry = new THREE.SphereGeometry( .5, 20, 16 );           // r, rSeg, hSeg
+            setMeshRotation(tempGeometry, rotation );
+            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            console.log('sphere');
+            return mesh
+        case 4:
+            tempGeometry = new THREE.TorusGeometry( .4, 0.1, 16, 16 );        // r, tR, rSeg, tSeg
+            setMeshRotation(tempGeometry, rotation );
+            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            console.log('torus');
+            return mesh
+        default:
+            return THREE.Mesh(cube, cubeMaterial);
+    }
+}
+
+function setMeshRotation( mesh, rotation ) {
+    switch (rotation) {
+        case 0:
+            mesh.rotateX(1.570796);
+            console.log('case 0');
+            break;
+        case 1:
+            mesh.rotateX(-1.570796);
+            console.log('case 1');
+            break;
+        case 2:
+            mesh.rotateY(1.570796);
+            console.log('case 2');
+            break;
+        case 3:
+            mesh.rotateY(-1.570796);
+            console.log('case 3');
+            break;
+        case 4:
+            mesh.rotateZ(1.570796);
+            console.log('case 4');
+            break;
+        default:
+            mesh.rotateZ(-1.570796);
+            console.log('case 5');
+            break;
+    }
+}
+
+// Checks if unique - Not really used, as list is reset on load.  Would only be useful if a DNA List was maintained. Credit Hashlips
+
+const isDnaUnique = (_DnaList = [], _dna = []) => {
+    let foundDna = _DnaList.find((i) => i.join("") === _dna.join(""));
+    return foundDna == undefined ? true : false;
+};
+
+// Clearing Objects and resetting for another object
+
+function resetShape() {
+    scene.clear();
+    shape.clear();
+    lights.clear();
+    shapeLength = 0;
+    shapeDNA = [];
+    outputReady = false;
+}
+
+// Positions and adds lights to scene based on object dimensions, includes color option, but currently isn't used.
+function addLights(color, radius, height) { // Intensity calcs are somewhat frivolous.
+    let lightColor = color;
+    let lightIntensity = 0.05 * Math.abs( 12 - radius  );
+    let lightX = 1 + radius;
+    let lightY = 1 + ( height / 2 );
+    let lightZ = 1 + radius;
+    let topLightColor = color;
+    let topLightIntensity = 0.05 * Math.abs( 12 - height ) ;
+    let topLightY = 2 + height;
+
+    let pointLight1 = new THREE.PointLight(lightColor, lightIntensity);
+    pointLight1.position.set(lightX, lightY, lightZ);
+    let pointLight2 = new THREE.PointLight(lightColor, lightIntensity);
+    pointLight2.position.set(-lightX, lightY, -lightZ);
+    let pointLight3 = new THREE.PointLight(lightColor, lightIntensity);
+    pointLight3.position.set(lightX, lightY, -lightZ);
+    let pointLight4 = new THREE.PointLight(lightColor, lightIntensity);
+    pointLight4.position.set(-lightX, lightY, lightZ);
+
+    let topLight = new THREE.PointLight(topLightColor, topLightIntensity);
+    topLight.position.set(0, topLightY,0);
+
+    lights.add(pointLight1);
+    lights.add(pointLight2);
+    lights.add(pointLight3);
+    lights.add(pointLight4);
+    lights.add(topLight);
+
+    scene.add(lights);
+}
+
+// Positions and adds camera
+function addCamera(radius, height) {
+    camera.position.set(0,( 4 + ( height / 12 ) ),( 8 + radius ));
+    camera.lookAt(0,0,0);
+    scene.add(camera);
+}
+
+// Controls - HTML hookups
+/*
+const resetShapeButton = document.getElementById('resetShape')
+resetShapeButton.addEventListener('click', e => resetShape() )
+
+const glbDownloadButton = document.getElementById('downloadGLB')
+glbDownloadButton.addEventListener('click', e => glbDownload() )
+
+const pngDownloadButton = document.getElementById('downloadPNG')
+pngDownloadButton.addEventListener('click', e => pngDownload() )
+*/
+// Download GLB
+
+function glbDownload() {
+    const exporter = new GLTFExporter();
+    exporter.parse(
+        scene,
+        function(result) {
+            saveArrayBuffer(result, `Shape-${shapeDNA.toString()}.glb`)
+        },
+        {
+            binary: true
+        }
+    )
+}
+
+const link = document.createElement( 'a' );
+link.style.display = 'none';
+document.body.appendChild( link );
+
+function saveArrayBuffer(buffer, fileName) {
+    save(new Blob([buffer], {type: 'application/octet-stream'}), fileName);
+}
+
+function save(blob, fileName) {
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+}
+
+// Download PNG
+
+function pngDownload() {
+
+    renderer.render(scene, camera);
+    renderer.domElement.toBlob(function(blob){
+    	var a = document.createElement('a');
+      var url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = `Shape-${shapeDNA.toString()}.png`;
+      a.click();
+    }, 'image/png', 1.0);
+}
+
+// Animate
+
+const clock = new THREE.Clock();
+
+const tick = () =>
+{
+
+    const elapsedTime = clock.getElapsedTime();
+
+    // Create New Shape if there isn't one, 
+
+    if( shapeLength == 0 && !outputReady ) {
+        // console.log('attempting shape creation');
+        createRoom();
+    } 
+
+    // Update objects
+
+    room.rotation.y = .5 * elapsedTime;
+
+    // Render
+    renderer.render(scene, camera);
+
+    // Call tick again on the next frame
+    window.requestAnimationFrame(tick);
+}
+
+tick()
