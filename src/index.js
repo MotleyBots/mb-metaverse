@@ -73,7 +73,7 @@ image.onload = function() {
 
 const cubeMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, map: cubeTexture, wireframe: false } );
 // General Use Material
-const material = new THREE.MeshStandardMaterial( {color: 0x00ffff} );
+// const material = new THREE.MeshStandardMaterial( {color: '0x00ffff'} );
 // Room Creation
 
 function createRoom() {
@@ -86,7 +86,8 @@ function createRoom() {
         let type = Math.floor(Math.random() * 5);
         let rotation = Math.floor(Math.random() * 6);
         console.log(`type: ${type} rotation: ${rotation}`);
-        roomDNA.push(([ x, y, z, type, rotation]));
+        let color = '#' + Math.floor(Math.random() * 255).toString(16) + Math.floor(Math.random() * 255).toString(16) + Math.floor(Math.random() * 255).toString(16);
+        roomDNA.push(([ x, y, z, type, rotation, color]));
         let rand = Math.random();
         if(rand > .6666) {
             x++;
@@ -138,58 +139,62 @@ function createRoom() {
 function buildRoom( roomDNA ) {                         // DNA: x, y, z, type, rotation
     roomDNA.forEach( ( meshInfo ) => {
         // console.log(meshInfo);
-        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4] );
+        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4], meshInfo[5] );
     });
 }
 
 // Adds a Cube to the Shape
 
-function addMesh(x, y, z, type, rotation){
-    let nextMesh = getMesh( type, rotation );
+function addMesh(x, y, z, type, rotation, color){
+    let nextMesh = getMesh( type, rotation, color );
     if(nextMesh != null) {
         nextMesh.position.set(x,y,z);
         room.add(nextMesh)
     }
-    shapeLength++;
 }
 
-function getMesh( type, rotation, texture = cubeTexture ) {
+function getMesh( type, rotation, color = '#00ffff', emissive = '#000000', roughness = 1, metalness = 0 ) {
     let tempGeometry;
-    let tempTexture;
+    let tempMaterial = new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: emissive,
+        roughness: roughness,
+        metalness: metalness
+    })
     let mesh;
     switch (type) {
         case 0:
             tempGeometry = new THREE.BoxGeometry( 1, 1, 1 );                                        // x, y, z
             setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
             // console.log('cube');
             return mesh
         case 1:
             tempGeometry = new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );           // r, h, rSeg, hSeg
             setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
             // console.log('cone');
             return mesh
         case 2:
             tempGeometry = new THREE.CylinderGeometry( .707106, .353553, 1, 4, 1, false, 0.7853982 );         // rTop, rBottom, h, rSeg, hSeg
             setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
             // console.log('cylinder');
             return mesh
         case 3:
             tempGeometry = new THREE.SphereGeometry( .5, 20, 16 );                                  // r, rSeg, hSeg
             setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
             // console.log('sphere');
             return mesh
         case 4:
             tempGeometry = new THREE.TorusGeometry( .4, 0.1, 16, 16 );                              // r, tR, rSeg, tSeg
             setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, cubeMaterial);
+            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
             // console.log('torus');
             return mesh
         default:
-            return new THREE.Mesh(cube, cubeMaterial);
+            return new THREE.Mesh(cube, tempMaterial);
     }
 }
 
@@ -336,6 +341,7 @@ function pngDownload() {
 // Animate
 
 const clock = new THREE.Clock();
+// scene.fog = new THREE.Fog(#363636);  //later
 
 const tick = () =>
 {
