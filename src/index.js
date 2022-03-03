@@ -60,20 +60,10 @@ var dnaList = [];
 let lights = new THREE.Object3D();
 var outputReady = false;
 
-// Materials
+// Shape Presets
 
-var image = new Image();
-image.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzbMAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5gIIBBcNz4Z5RwAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAEkklEQVR42u3X0QmAMBBEwV2x/5bPGgwIIc5UEDYfj2uSCQC8dJkAAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEABI7t0fODN+Cfilti4QAM4jIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAICAAICAACAgAAgKAgAAgIAAgIAAICAACAoCAACAgACAgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAAICgIAAgIAAICAACAgAAgKAgACAgAAgIAAICAACAoCAAICAACAgAAgIAAICgIAAgIAAICAACAgAAgKAgJgAAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAEBAAEBQEAAEBAABAQAAQEAAQFAQAAQEAAEBAABAQABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAABAQABAQAAQFAQAAQEAAEBAAEBAABAUBAABAQAAQEAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAABAQABAQAAQEAAEBQEAAEBAAEBAABAQAAQFAQAAQEAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAAEBAABAQAAQFAQABAQAAQEAAEBAABAUBAAEBAABAQAAQEAAEBQEAAQEAA+EKTjBkAcIEAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgACAoCAACAgAAgIAAICAAICgIAAICAACAgAAgIAAgKAgAAgIAAICAACAgALHlmBCB9nvDEtAAAAAElFTkSuQmCC';
 
-const cubeTexture = new THREE.Texture()
-cubeTexture.image = image;
-image.onload = function() {
-    cubeTexture.needsUpdate = true;
-}
 
-const cubeMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, map: cubeTexture, wireframe: false } );
-// General Use Material
-// const material = new THREE.MeshStandardMaterial( {color: '0x00ffff'} );
 // Room Creation
 
 function createRoom() {
@@ -83,11 +73,14 @@ function createRoom() {
     // Creates a lazily random configuration of blocks
     while (shapeLength < 12) {
 
-        let type = Math.floor(Math.random() * 5);
+        let type = Math.floor(Math.random() * 7);
         let rotation = Math.floor(Math.random() * 6);
         console.log(`type: ${type} rotation: ${rotation}`);
         let color = '#' + Math.floor(Math.random() * 255).toString(16) + Math.floor(Math.random() * 255).toString(16) + Math.floor(Math.random() * 255).toString(16);
-        roomDNA.push(([ x, y, z, type, rotation, color]));
+        let emissive = Math.random();
+        let roughness = Math.random();
+        let metalness = Math.random();
+        roomDNA.push(([ x, y, z, type, rotation, color, emissive, roughness, metalness]));
         let rand = Math.random();
         if(rand > .6666) {
             x++;
@@ -153,78 +146,69 @@ function addMesh(x, y, z, type, rotation, color){
     }
 }
 
-function getMesh( type, rotation, color = '#00ffff', emissive = '#000000', roughness = 1, metalness = 0 ) {
-    let tempGeometry;
-    let tempMaterial = new THREE.MeshStandardMaterial({
-        color: color,
-        emissive: emissive,
-        roughness: roughness,
-        metalness: metalness
-    })
-    let mesh;
+function getMesh( type, rotation, color = '#00ffff', emissive = 1, roughness = 1, metalness = 0 ) {
+    let tempGeometry = setBaseMesh( type );
+    setMeshRotation( tempGeometry, rotation );
+    let tempMaterial = setMaterial( color, emissive, roughness, metalness );
+    return new THREE.Mesh(tempGeometry, tempMaterial);
+}
+
+// Returns base mesh geometry
+function setBaseMesh(type){
     switch (type) {
-        case 0:
-            tempGeometry = new THREE.BoxGeometry( 1, 1, 1 );                                        // x, y, z
-            setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
-            // console.log('cube');
-            return mesh
-        case 1:
-            tempGeometry = new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );           // r, h, rSeg, hSeg
-            setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
-            // console.log('cone');
-            return mesh
-        case 2:
-            tempGeometry = new THREE.CylinderGeometry( .707106, .353553, 1, 4, 1, false, 0.7853982 );         // rTop, rBottom, h, rSeg, hSeg
-            setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
-            // console.log('cylinder');
-            return mesh
-        case 3:
-            tempGeometry = new THREE.SphereGeometry( .5, 20, 16 );                                  // r, rSeg, hSeg
-            setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
-            // console.log('sphere');
-            return mesh
-        case 4:
-            tempGeometry = new THREE.TorusGeometry( .4, 0.1, 16, 16 );                              // r, tR, rSeg, tSeg
-            setMeshRotation(tempGeometry, rotation );
-            mesh = new THREE.Mesh(tempGeometry, tempMaterial);
-            // console.log('torus');
-            return mesh
-        default:
-            return new THREE.Mesh(cube, tempMaterial);
+        case 0:             // 1x1 Cube
+            return new THREE.BoxGeometry( 1, 1, 1 );                                        // x, y, z
+        case 1:             // 1x1 Pyramid
+            return new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );           // r, h, rSeg, hSeg
+        case 2:             // Flat-top Half Pyramid
+            return new THREE.CylinderGeometry( 0.707106, 0.353553, 1, 4, 1, false, 0.7853982 );         // rTop, rBottom, h, rSeg, hSeg
+        case 3:             // .5x1 Rectangle
+            return new THREE.BoxGeometry( 0.5, 0.5, 1 );                                        // x, y, z
+        case 4:             // 1x1 Cylinder
+            return new THREE.CylinderGeometry( 0.5, 0.5, 1, 8 );         // rTop, rBottom, h, rSeg, hSeg
+        case 5:             // .5x1 Pyramid
+            return new THREE.ConeGeometry( 0.353553, 1, 4, 1, false, 0.7853982 );           // r, h, rSeg, hSeg
+        default:            // Empty
+            return new THREE.BoxGeometry( 0, 0, 0);                     
     }
 }
 
+// Rotates base mesh geometry 
 function setMeshRotation( mesh, rotation ) {
     switch (rotation) {
         case 0:
             mesh.rotateX(1.570796);
-            // console.log('case 0');
-            break;
+            return;
         case 1:
             mesh.rotateX(-1.570796);
-            // console.log('case 1');
-            break;
+            return;
         case 2:
             mesh.rotateY(1.570796);
-            // console.log('case 2');
-            break;
+            return;
         case 3:
             mesh.rotateY(-1.570796);
-            // console.log('case 3');
-            break;
+            return;
         case 4:
             mesh.rotateZ(1.570796);
-            // console.log('case 4');
-            break;
+            return;
         default:
             mesh.rotateZ(-1.570796);
-            // console.log('case 5');
-            break;
+            return;
     }
+}
+
+// Returns material
+function setMaterial( color, emissive, roughness, metalness ) {
+    let tempMaterial = new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: color,
+        emissiveIntensity: emissive,
+        roughness: roughness,
+        metalness: metalness,
+        flatShading: true
+    });
+
+    return tempMaterial;
 }
 
 // Checks if unique - Not really used, as list is reset on load.  Would only be useful if a DNA List was maintained. Credit Hashlips
