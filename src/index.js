@@ -62,7 +62,20 @@ var outputReady = false;
 
 // Shape Presets
 
+const rightTriangle = new THREE.Shape();
 
+rightTriangle.moveTo( 0, 0 );
+rightTriangle.lineTo( 0, 1 );
+rightTriangle.lineTo( 1, 0 );
+rightTriangle.closePath();
+
+const extrudeSettings = { depth: 1, bevelEnabled: false };
+
+const rightTriangleGeo = new THREE.ExtrudeGeometry( rightTriangle, extrudeSettings );
+
+const rightTriangleMesh = new THREE.Mesh( rightTriangleGeo, new THREE.MeshBasicMaterial() );
+
+scene.add(rightTriangleMesh);
 
 // Room Creation
 
