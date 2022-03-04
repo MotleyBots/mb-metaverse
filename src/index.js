@@ -62,6 +62,7 @@ var outputReady = false;
 
 // Shape Presets
 
+// Right Triangle
 const rightTriangle = new THREE.Shape();
 
 rightTriangle.moveTo( 0, 0 );
@@ -69,13 +70,73 @@ rightTriangle.lineTo( 0, 1 );
 rightTriangle.lineTo( 1, 0 );
 rightTriangle.closePath();
 
+// Frame
+const imageFrame = new THREE.Shape();
+
+imageFrame.moveTo( 0, 0 );
+imageFrame.lineTo( 1, 0 );
+imageFrame.lineTo( 1, 1 );
+imageFrame.lineTo( 0, 1 );
+imageFrame.lineTo( 0, 0 );
+imageFrame.moveTo( 0.1, 0.1 );
+imageFrame.moveTo( 0.9, 0.1 );
+imageFrame.moveTo( 0.9, 0.9 );
+imageFrame.moveTo( 0.1, 0.9 );
+
+
+/* Shape Testing
 const extrudeSettings = { depth: 1, bevelEnabled: false };
 
 const rightTriangleGeo = new THREE.ExtrudeGeometry( rightTriangle, extrudeSettings );
-
 const rightTriangleMesh = new THREE.Mesh( rightTriangleGeo, new THREE.MeshBasicMaterial() );
 
-scene.add(rightTriangleMesh);
+const imageFrameGeo = new THREE.ExtrudeGeometry( imageFrame, extrudeSettings );
+const imageFrameMesh = new THREE.Mesh( imageFrameGeo, new THREE.MeshBasicMaterial() );
+
+scene.add( rightTriangleMesh );
+scene.add( imageFrameMesh );
+*/
+
+// Island Creation
+
+let island = new THREE.Object3D();
+var islandDNA = [];
+
+function createIsland() {
+    let seed = Math.random()*1000 + Math.random()*500
+    
+    const islandMaxDepth = 10;
+    const islandMinRadius = 4;
+    const islandMaxRadius = 10;
+    const islandConsistency = 1;
+
+    // let [ x, y, z] = [ islandMaxRadius, 0, islandMaxRadius]
+
+    for ( y = 0; y >= -islandMaxDepth; y-- ) {
+        for ( x = -islandMaxRadius; x <= islandMaxRadius; x++ ) {
+            for ( z = -islandMaxRadius; z <= islandMaxRadius; z++ ) {
+                if ( (x**2 + z**2) <= islandMaxRadius**2 ) {
+                    if ( (x**2 + z**2) <= islandMinRadius**2 ) {
+                        islandDNA.push( [ x, y, z, 0, 0, '#00ee50']);
+                    } else if ( ( islandMaxRadius**2 - (x**2 + z**2) * ( ( islandMaxDepth + y ) / islandMaxDepth ) ) * Math.random() >= ( islandMaxRadius**2 - islandMinRadius**2 ) * Math.random() ) {
+                        islandDNA.push( [ x, y, z, 0, 0, '#20cc25']);
+                        console.log(y);
+                    }
+                }
+            }
+        }
+    }
+
+    outputReady = true;
+
+    buildRoom(islandDNA);
+
+    addCamera( islandMaxRadius*1.1, islandMaxDepth*2);
+
+    scene.add(room);
+
+}
+
 
 // Room Creation
 
@@ -93,7 +154,7 @@ function createRoom() {
         let emissive = Math.random();
         let roughness = Math.random();
         let metalness = Math.random();
-        roomDNA.push(([ x, y, z, type, rotation, color, emissive, roughness, metalness]));
+        roomDNA.push([ x, y, z, type, rotation, color, emissive, roughness, metalness]);
         let rand = Math.random();
         if(rand > .6666) {
             x++;
@@ -340,18 +401,27 @@ function pngDownload() {
 const clock = new THREE.Clock();
 // scene.fog = new THREE.Fog(#363636);  //later
 
+var sceneBuilt = false;
+
 const tick = () =>
 {
 
     const elapsedTime = clock.getElapsedTime();
 
-    // Create New Shape if there isn't one, 
+    // Create Island
 
+    if( !outputReady ) {
+        createIsland();
+    }
+
+
+    // Create New Shape if there isn't one, 
+/*
     if( shapeLength == 0 && !outputReady ) {
         // console.log('attempting shape creation');
         createRoom();
     } 
-
+*/
     // Update objects
 
     room.rotation.y = .5 * elapsedTime;
