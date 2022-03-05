@@ -105,9 +105,9 @@ var islandDNA = [];
 function createIsland() {
     let seed = Math.random()*1000 + Math.random()*500
     
-    const islandMaxDepth = 10;
-    const islandMinRadius = 4;
-    const islandMaxRadius = 10;
+    const islandMaxDepth = 4;
+    const islandMinRadius = 12;
+    const islandMaxRadius = 36;
     const islandConsistency = 1;
 
     // let [ x, y, z] = [ islandMaxRadius, 0, islandMaxRadius]
@@ -118,7 +118,8 @@ function createIsland() {
                 if ( (x**2 + z**2) <= islandMaxRadius**2 ) {
                     if ( (x**2 + z**2) <= islandMinRadius**2 ) {
                         islandDNA.push( [ x, y, z, 0, 0, '#00ee50']);
-                    } else if ( ( islandMaxRadius**2 - (x**2 + z**2) * ( ( islandMaxDepth + y ) / islandMaxDepth ) ) * Math.random() >= ( islandMaxRadius**2 - islandMinRadius**2 ) * Math.random() ) {
+                    } else if ( ( islandMaxRadius**2 - (x**2 + z**2) * ( ( islandMaxDepth - y ) / islandMaxDepth ) ) >= ( islandMaxRadius**2 - islandMinRadius**2 ) * ( ( islandMaxDepth + y ) / islandMaxDepth ) ) {
+                        // I do not understand why the above equation is so erratic when modified.  Takes too long to render going a different route.
                         islandDNA.push( [ x, y, z, 0, 0, '#20cc25']);
                         console.log(y);
                     }
@@ -130,6 +131,8 @@ function createIsland() {
     outputReady = true;
 
     buildRoom(islandDNA);
+
+    addLights(0xffffff, islandMaxRadius*1.1, islandMaxDepth);
 
     addCamera( islandMaxRadius*1.1, islandMaxDepth*2);
 
