@@ -103,6 +103,8 @@ let island = new THREE.Object3D();
 var islandDNA = [];
 
 function createIsland() {
+
+    /* - Blocks Method
     let seed = Math.random()*1000 + Math.random()*500
     
     const islandMaxDepth = 4;
@@ -127,16 +129,68 @@ function createIsland() {
             }
         }
     }
+    */
+
+    // Shapes Method
+
+    const islandGrass = new THREE.Shape();
+    const grassRadius = 8;
+    const grassVariance = 1.5;
+    const grassOffset = 0.1;
+
+    const islandDirt = new THREE.Shape();
+    const dirtOffset = 3;
+    const dirtVariance = 2.5;
+
+    let x, y;
+
+    // islandGrass.moveTo( ( grassRadius + grassVariance * Math.random() ), 0 );
+    for( a = 0; a < 360; a+=15 ){
+        x = ( grassRadius + grassVariance * Math.random() ) * Math.sin( ( a * ( Math.PI/ 180 ) ) );
+        y = ( grassRadius + grassVariance * Math.random() ) * Math.cos( ( a * ( Math.PI/ 180 ) ) );
+        if( a == 0 ) {
+            islandGrass.moveTo( x, y);
+        }
+        islandGrass.lineTo( x, y );
+        grassActual = Math.sqrt( x**2 + y**2 );
+        x = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.sin( ( a * ( Math.PI/ 180 ) ) );
+        y = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.cos( ( a * ( Math.PI/ 180 ) ) );
+        if( a == 0 ) {
+            islandDirt.moveTo( x, y);
+        }
+        islandDirt.lineTo( x, y );
+    }
+    
+    
+
+    const grassExtrudeSettings = { depth: 1, bevelEnabled: true, bevelSegments: 1, steps: 2, bevelSize: 0.2, bevelThickness: 0.2 };
+
+    const grassGeo = new THREE.ExtrudeGeometry( islandGrass, grassExtrudeSettings );
+    grassGeo.rotateX( 1.570796 );
+    const grassMesh = new THREE.Mesh( grassGeo, new THREE.MeshStandardMaterial( { color: '#20cc25' } ) );
+    grassMesh.translateY( -1 + grassOffset );
+
+    const dirtExtrudeSettings = { depth: 4, bevelEnabled: false };
+
+    const dirtGeo = new THREE.ExtrudeGeometry( islandDirt, dirtExtrudeSettings );
+    dirtGeo.rotateX( 1.570796 );
+    const dirtMesh = new THREE.Mesh( dirtGeo, new THREE.MeshStandardMaterial( { color: '#707020' } ) );
+    dirtMesh.translateY( -1 );
+
+    
 
     outputReady = true;
 
-    buildRoom(islandDNA);
+    // buildRoom(islandDNA);
 
-    addLights(0xffffff, islandMaxRadius*1.1, islandMaxDepth);
+    addLights(0xffffff, grassRadius*1.1, 2);
 
-    addCamera( islandMaxRadius*1.1, islandMaxDepth*2);
+    addCamera( grassRadius*1.5, 4);
 
-    scene.add(room);
+    island.add(grassMesh);
+    island.add(dirtMesh);
+
+    scene.add(island);
 
 }
 
@@ -194,10 +248,10 @@ function createRoom() {
     let radius = Math.sqrt(shapeX**2 + shapeZ**2);
 
     // Lights
-    addLights(0xffffff, radius, shapeY);
+    // addLights(0xffffff, radius, shapeY);
 
     // Camera
-    addCamera(radius, shapeY);
+    // addCamera(radius, shapeY);
 
     // Action
     outputReady = true;
@@ -419,15 +473,16 @@ const tick = () =>
 
 
     // Create New Shape if there isn't one, 
-/*
-    if( shapeLength == 0 && !outputReady ) {
+
+    if( shapeLength == 0 && outputReady ) {
         // console.log('attempting shape creation');
         createRoom();
     } 
-*/
+
     // Update objects
 
-    room.rotation.y = .5 * elapsedTime;
+    room.rotation.y = .25 * elapsedTime;
+    island.rotation.y = .25 * elapsedTime;
 
     // Render
     renderer.render(scene, camera);
