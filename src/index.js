@@ -104,96 +104,95 @@ var islandDNA = [];
 
 function createIsland() {
 
-    /* - Blocks Method
-    let seed = Math.random()*1000 + Math.random()*500
-    
-    const islandMaxDepth = 4;
-    const islandMinRadius = 12;
-    const islandMaxRadius = 36;
-    const islandConsistency = 1;
-
-    // let [ x, y, z] = [ islandMaxRadius, 0, islandMaxRadius]
-
-    for ( y = 0; y >= -islandMaxDepth; y-- ) {
-        for ( x = -islandMaxRadius; x <= islandMaxRadius; x++ ) {
-            for ( z = -islandMaxRadius; z <= islandMaxRadius; z++ ) {
-                if ( (x**2 + z**2) <= islandMaxRadius**2 ) {
-                    if ( (x**2 + z**2) <= islandMinRadius**2 ) {
-                        islandDNA.push( [ x, y, z, 0, 0, '#00ee50']);
-                    } else if ( ( islandMaxRadius**2 - (x**2 + z**2) * ( ( islandMaxDepth - y ) / islandMaxDepth ) ) >= ( islandMaxRadius**2 - islandMinRadius**2 ) * ( ( islandMaxDepth + y ) / islandMaxDepth ) ) {
-                        // I do not understand why the above equation is so erratic when modified.  Takes too long to render going a different route.
-                        islandDNA.push( [ x, y, z, 0, 0, '#20cc25']);
-                        console.log(y);
-                    }
-                }
-            }
-        }
-    }
-    */
-
     // Shapes Method
 
     const islandGrass = new THREE.Shape();
-    const grassRadius = 8;
+    const grassRadius = 6;
     const grassVariance = 1.5;
-    const grassOffset = 0.1;
+    const grassHeight = 0.1;
+    const grassDepth = 1;
 
     const islandDirt = new THREE.Shape();
-    const dirtOffset = 3;
-    const dirtVariance = 2.5;
+    const dirtOffset = 2.5;
+    const dirtVariance = 1;
+    const dirtHeight = 0.5;
+    const dirtDepth = 10;
+
+    const islandStone = new THREE.Shape();
+    const stoneOffset = 2;
+    const stoneVariance = 2;
+    const stoneHeight = 10;
+    const stoneDepth = 100;
 
     let x, y;
 
-    // islandGrass.moveTo( ( grassRadius + grassVariance * Math.random() ), 0 );
+    const degToRadConst = ( Math.PI/ 180 )
+
+    // This is hideous.  Refactor
     for( a = 0; a < 360; a+=15 ){
-        x = ( grassRadius + grassVariance * Math.random() ) * Math.sin( ( a * ( Math.PI/ 180 ) ) );
-        y = ( grassRadius + grassVariance * Math.random() ) * Math.cos( ( a * ( Math.PI/ 180 ) ) );
+        x = ( grassRadius + grassVariance * Math.random() ) * Math.sin( ( a * degToRadConst ) );
+        y = ( grassRadius + grassVariance * Math.random() ) * Math.cos( ( a * degToRadConst ) );
         if( a == 0 ) {
             islandGrass.moveTo( x, y);
         }
         islandGrass.lineTo( x, y );
         grassActual = Math.sqrt( x**2 + y**2 );
-        x = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.sin( ( a * ( Math.PI/ 180 ) ) );
-        y = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.cos( ( a * ( Math.PI/ 180 ) ) );
+        x = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.sin( ( a * degToRadConst ) );
+        y = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.cos( ( a * degToRadConst ) );
         if( a == 0 ) {
             islandDirt.moveTo( x, y);
         }
         islandDirt.lineTo( x, y );
+        dirtActual = Math.sqrt( x**2 + y**2 );
+        x = ( dirtActual + stoneOffset - stoneVariance * Math.random() ) * Math.sin( ( a * degToRadConst ) );
+        y = ( dirtActual + stoneOffset - stoneVariance * Math.random() ) * Math.cos( ( a * degToRadConst ) );
+        if( a == 0 ) {
+            islandStone.moveTo( x, y);
+        }
+        islandStone.lineTo( x, y );
     }
     
-    
+    // Display centers at 0,0,0 this means a 0.5 height move is needed to not hide half the first layer of blocks
+    const heightAdjust = -0.5;
 
-    const grassExtrudeSettings = { depth: 1, bevelEnabled: true, bevelSegments: 1, steps: 2, bevelSize: 0.2, bevelThickness: 0.2 };
+    const grassExtrudeSettings = { depth: grassDepth, bevelEnabled: true, bevelSegments: 1, steps: 1, bevelSize: grassHeight, bevelThickness: grassHeight };
 
     const grassGeo = new THREE.ExtrudeGeometry( islandGrass, grassExtrudeSettings );
     grassGeo.rotateX( 1.570796 );
     const grassMesh = new THREE.Mesh( grassGeo, new THREE.MeshStandardMaterial( { color: '#20cc25' } ) );
-    grassMesh.translateY( -1 + grassOffset );
+    grassMesh.translateY( heightAdjust );
 
-    const dirtExtrudeSettings = { depth: 4, bevelEnabled: false };
+    const dirtExtrudeSettings = { depth: dirtDepth, bevelEnabled: true, bevelSegments: 4, steps: 4, bevelSize: dirtHeight / 2, bevelThickness: dirtHeight };
 
     const dirtGeo = new THREE.ExtrudeGeometry( islandDirt, dirtExtrudeSettings );
     dirtGeo.rotateX( 1.570796 );
-    const dirtMesh = new THREE.Mesh( dirtGeo, new THREE.MeshStandardMaterial( { color: '#707020' } ) );
-    dirtMesh.translateY( -1 );
+    const dirtMesh = new THREE.Mesh( dirtGeo, new THREE.MeshStandardMaterial( { color: '#ccaa44' } ) );
+    dirtMesh.translateY( heightAdjust - dirtHeight + 0.01 /* prevents clipping */ );
 
-    
+    const stoneExtrudeSettings = { depth: stoneDepth, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: stoneHeight / 4, bevelThickness: stoneHeight };
+
+    const stoneGeo = new THREE.ExtrudeGeometry( islandStone, stoneExtrudeSettings );
+    stoneGeo.rotateX( 1.570796 );
+    const stoneMesh = new THREE.Mesh( stoneGeo, new THREE.MeshStandardMaterial( { color: '#bbbbbb' } ) );
+    stoneMesh.translateY( heightAdjust - stoneHeight );
 
     outputReady = true;
 
     // buildRoom(islandDNA);
 
-    addLights(0xffffff, grassRadius*1.1, 2);
+    addLights(0xffffff, grassRadius*1.2, 2);
 
-    addCamera( grassRadius*1.5, 4);
+    addCamera( grassRadius*1.5, 24);
 
     island.add(grassMesh);
     island.add(dirtMesh);
+    island.add(stoneMesh);
 
     scene.add(island);
 
 }
 
+// Returns a radial lenght based on 
 
 // Room Creation
 
@@ -460,6 +459,11 @@ const clock = new THREE.Clock();
 
 var sceneBuilt = false;
 
+// Scene Debug
+const box = new THREE.BoxGeometry(1,1,1);
+const boxMesh = new THREE.Mesh( box, new THREE.MeshBasicMaterial( {color: '#00FF00'} ));
+scene.add(boxMesh);
+
 const tick = () =>
 {
 
@@ -473,12 +477,12 @@ const tick = () =>
 
 
     // Create New Shape if there isn't one, 
-
+/*
     if( shapeLength == 0 && outputReady ) {
         // console.log('attempting shape creation');
         createRoom();
     } 
-
+*/
     // Update objects
 
     room.rotation.y = .25 * elapsedTime;
