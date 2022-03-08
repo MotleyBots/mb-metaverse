@@ -1,3 +1,5 @@
+// import { OrbitControls } from "./OrbitControls"
+
 
 // Canvas
 
@@ -56,9 +58,12 @@ const sphere = new THREE.SphereGeometry( .5, 20, 16 );           // r, rSeg, hSe
 const torus = new THREE.TorusGeometry( .4, 0.1, 16, 16 );        // r, tR, rSeg, tSeg
 var shapeLength = 0;
 var roomDNA = [];
+var structureDNA = [];
 var dnaList = [];
 let lights = new THREE.Object3D();
 var outputReady = false;
+
+const degToRadConst = ( Math.PI/ 180 )
 
 // Shape Presets
 
@@ -125,8 +130,6 @@ function createIsland() {
     const stoneDepth = 100;
 
     let x, y;
-
-    const degToRadConst = ( Math.PI/ 180 )
 
     // This is hideous.  Refactor
     for( a = 0; a < 360; a+=15 ){
@@ -228,7 +231,6 @@ function createRoom() {
         resetShape();
     }
 */
-
     buildRoom( roomDNA );
     // console.log( roomDNA.length );
 
@@ -256,19 +258,24 @@ function createRoom() {
     outputReady = true;
 
 }
-
+/*
+function createStructure() {
+    createFoundation();
+    createLevels();
+    createTop();
+}
+*/
 // Abstracting out the mesh constructor to work off 'DNA'
 
-function buildRoom( roomDNA ) {                         // DNA: x, y, z, type, rotation
+function buildRoom( roomDNA ) {                         // DNA: x, y, z, type, rotation, color, emmissiveIntensity
     roomDNA.forEach( ( meshInfo ) => {
-        // console.log(meshInfo);
-        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4], meshInfo[5] );
+        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4], meshInfo[5], meshInfo[6] );
     });
 }
 
 // Adds a Cube to the Shape
 
-function addMesh(x, y, z, type, rotation, color){
+function addMesh(x, y, z, type, rotation, color, emmissiveIntensity){
     let nextMesh = getMesh( type, rotation, color );
     if(nextMesh != null) {
         nextMesh.position.set(x,y,z);
@@ -398,6 +405,8 @@ function addCamera(radius, height) {
     scene.add(camera);
 }
 
+// Controls
+
 // Controls - HTML hookups
 /*
 const resetShapeButton = document.getElementById('resetShape')
@@ -460,9 +469,11 @@ const clock = new THREE.Clock();
 var sceneBuilt = false;
 
 // Scene Debug
+/*
 const box = new THREE.BoxGeometry(1,1,1);
 const boxMesh = new THREE.Mesh( box, new THREE.MeshBasicMaterial( {color: '#00FF00'} ));
 scene.add(boxMesh);
+*/
 
 const tick = () =>
 {
@@ -487,6 +498,10 @@ const tick = () =>
 
     room.rotation.y = .25 * elapsedTime;
     island.rotation.y = .25 * elapsedTime;
+
+    // Controls
+
+    // controls.update();
 
     // Render
     renderer.render(scene, camera);
