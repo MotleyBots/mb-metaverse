@@ -112,7 +112,7 @@ function createIsland() {
     // Shapes Method
 
     const islandGrass = new THREE.Shape();
-    const grassRadius = 6;
+    const grassRadius = 12;
     const grassVariance = 1.5;
     const grassHeight = 0.1;
     const grassDepth = 1;
@@ -464,7 +464,7 @@ function pngDownload() {
 // Animate
 
 const clock = new THREE.Clock();
-// scene.fog = new THREE.Fog(#363636);  //later
+scene.fog = new THREE.Fog( '#aaaaaa', 8, 80 );
 
 var sceneBuilt = false;
 
@@ -496,7 +496,7 @@ const tick = () =>
 */
     // Update objects
 
-    room.rotation.y = .25 * elapsedTime;
+    // room.rotation.y = .25 * elapsedTime;
     island.rotation.y = .25 * elapsedTime;
 
     // Controls
