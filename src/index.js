@@ -407,6 +407,16 @@ function addCamera(radius, height) {
 
 // Controls
 
+var islandRotate = false;
+
+canvasMain.addEventListener('mousedown', () => {
+    islandRotate = true;
+} )
+
+canvasMain.addEventListener('mouseup', () => {
+    islandRotate = false;
+} )
+
 // Controls - HTML hookups
 /*
 const resetShapeButton = document.getElementById('resetShape')
@@ -496,9 +506,10 @@ const tick = () =>
 */
     // Update objects
 
+    if(islandRotate){
     // room.rotation.y = .25 * elapsedTime;
-    island.rotation.y = .25 * elapsedTime;
-
+        island.rotation.y = .1 * elapsedTime;
+    }
     // Controls
 
     // controls.update();
