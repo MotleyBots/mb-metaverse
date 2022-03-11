@@ -13,14 +13,14 @@ const scene = new THREE.Scene()
 
 const sizes = {
     width: window.innerWidth,
-    height: 0.9 * window.innerHeight
+    height: window.innerHeight
 }
 
 window.addEventListener('resize', () =>
 {
     // Update sizes
     sizes.width = window.innerWidth
-    sizes.height = 0.9 * window.innerHeight
+    sizes.height = window.innerHeight
 
     // Update camera
     camera.aspect = sizes.width / sizes.height
@@ -408,7 +408,7 @@ function addCamera(radius, height) {
 // Controls
 
 var islandRotate = false;
-
+/*
 canvasMain.addEventListener('mousedown', () => {
     islandRotate = true;
 } )
@@ -416,6 +416,55 @@ canvasMain.addEventListener('mousedown', () => {
 canvasMain.addEventListener('mouseup', () => {
     islandRotate = false;
 } )
+*/
+
+document.addEventListener('keydown', (e) => OnKeyDown_(e), false);
+document.addEventListener('keyup', (e) => OnKeyUp_(e), false);
+
+var forward, left, right, backward = false;
+
+function OnKeyDown_(event) {
+    switch (event.keyCode) {
+      case 38: // up
+      case 87: // w
+        forward = true;
+        break;
+      case 37: // left
+      case 65: // a
+        left = true;
+        break;
+      case 40: // down
+      case 83: // s
+        backward = true;
+        break;
+      case 39: // right
+      case 68: // d
+        right = true;
+        break;
+    }
+}
+
+function OnKeyUp_(event) {
+    switch(event.keyCode) {
+      case 38: // up
+      case 87: // w
+        forward = false;
+        break;
+      case 37: // left
+      case 65: // a
+        left = false;
+        break;
+      case 40: // down
+      case 83: // s
+        backward = false;
+        break;
+      case 39: // right
+      case 68: // d
+        right = false;
+        break;
+    }
+  }
+
 
 // Controls - HTML hookups
 /*
@@ -478,6 +527,36 @@ scene.fog = new THREE.Fog( '#aaaaaa', 8, 80 );
 
 var sceneBuilt = false;
 
+const worldAxis = new THREE.Vector3( 0, 1, 0);
+
+var verticalVelocity = 0.0;
+var rotationVelocity = 0.0;
+
+function updateCamera( elapsedTime ) {
+    if( 0.5 >= Math.abs(verticalVelocity) ) {
+        if ( forward ) {
+            verticalVelocity += 0.0005 * elapsedTime;
+        } else if ( backward ) {
+            verticalVelocity -= 0.0005 * elapsedTime;
+        } else {
+            verticalVelocity = verticalVelocity * 0.8;
+        }
+    } else {
+        verticalVelocity = verticalVelocity * 0.8;
+    }
+    if( 0.05 >= Math.abs(rotationVelocity) ) {
+        if ( left ) {
+            rotationVelocity += 0.00005 * elapsedTime;
+        } else if ( right ) {
+            rotationVelocity -= 0.00005 * elapsedTime;
+        } else {
+            rotationVelocity = rotationVelocity * 0.8;
+        }
+    } else {
+        rotationVelocity = rotationVelocity * 0.8;
+    }
+}
+
 // Scene Debug
 /*
 const box = new THREE.BoxGeometry(1,1,1);
@@ -496,7 +575,6 @@ const tick = () =>
         createIsland();
     }
 
-
     // Create New Shape if there isn't one, 
 /*
     if( shapeLength == 0 && outputReady ) {
@@ -505,12 +583,17 @@ const tick = () =>
     } 
 */
     // Update objects
-
+/*
     if(islandRotate){
     // room.rotation.y = .25 * elapsedTime;
         island.rotation.y = .1 * elapsedTime;
     }
+*/
     // Controls
+
+    updateCamera( elapsedTime );
+    camera.translateY( verticalVelocity );
+    island.rotateOnWorldAxis( worldAxis, rotationVelocity );
 
     // controls.update();
 
