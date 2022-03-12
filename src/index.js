@@ -107,95 +107,82 @@ scene.add( imageFrameMesh );
 let island = new THREE.Object3D();
 var islandDNA = [];
 
+const islandGrass = new THREE.Shape();
+const grassRadius = 12;
+const grassVariance = 1.5;
+const grassHeight = 0.1;
+const grassDepth = 1;
+
+const islandDirt = new THREE.Shape();
+const dirtOffset = 1.5;
+const dirtVariance = 1;
+const dirtHeight = 0.5;
+const dirtDepth = 10;
+
+const islandStone = new THREE.Shape();
+const stoneOffset = 0;
+const stoneVariance = 2;
+const stoneHeight = 10;
+const stoneDepth = 100;
+
 function createIsland() {
 
     // Shapes Method
 
-    const islandGrass = new THREE.Shape();
-    const grassRadius = 12;
-    const grassVariance = 1.5;
-    const grassHeight = 0.1;
-    const grassDepth = 1;
-
-    const islandDirt = new THREE.Shape();
-    const dirtOffset = 2.5;
-    const dirtVariance = 1;
-    const dirtHeight = 0.5;
-    const dirtDepth = 10;
-
-    const islandStone = new THREE.Shape();
-    const stoneOffset = 2;
-    const stoneVariance = 2;
-    const stoneHeight = 10;
-    const stoneDepth = 100;
-
     let x, y;
 
-    // This is hideous.  Refactor
+    // Drawing each shape
     for( a = 0; a < 360; a+=15 ){
-        x = ( grassRadius + grassVariance * Math.random() ) * Math.sin( ( a * degToRadConst ) );
-        y = ( grassRadius + grassVariance * Math.random() ) * Math.cos( ( a * degToRadConst ) );
-        if( a == 0 ) {
-            islandGrass.moveTo( x, y);
-        }
-        islandGrass.lineTo( x, y );
+        [ x, y ] = returnRandomPointOnCircle( grassRadius, grassVariance, a );
+        drawIslandSegment( islandGrass, x, y, a );
         grassActual = Math.sqrt( x**2 + y**2 );
-        x = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.sin( ( a * degToRadConst ) );
-        y = ( grassActual + dirtOffset - dirtVariance * Math.random() ) * Math.cos( ( a * degToRadConst ) );
-        if( a == 0 ) {
-            islandDirt.moveTo( x, y);
-        }
-        islandDirt.lineTo( x, y );
+        [ x, y ] = returnRandomPointOnCircle( (grassActual + dirtOffset), dirtVariance, a );
+        drawIslandSegment( islandDirt, x, y, a );
         dirtActual = Math.sqrt( x**2 + y**2 );
-        x = ( dirtActual + stoneOffset - stoneVariance * Math.random() ) * Math.sin( ( a * degToRadConst ) );
-        y = ( dirtActual + stoneOffset - stoneVariance * Math.random() ) * Math.cos( ( a * degToRadConst ) );
-        if( a == 0 ) {
-            islandStone.moveTo( x, y);
-        }
-        islandStone.lineTo( x, y );
+        [ x, y ] = returnRandomPointOnCircle( ( dirtActual + stoneOffset ), stoneVariance, a );
+        drawIslandSegment( islandStone, x, y, a );
     }
     
     // Display centers at 0,0,0 this means a 0.5 height move is needed to not hide half the first layer of blocks
     const heightAdjust = -0.5;
 
-    const grassExtrudeSettings = { depth: grassDepth, bevelEnabled: true, bevelSegments: 1, steps: 1, bevelSize: grassHeight, bevelThickness: grassHeight };
-
-    const grassGeo = new THREE.ExtrudeGeometry( islandGrass, grassExtrudeSettings );
-    grassGeo.rotateX( 1.570796 );
-    const grassMesh = new THREE.Mesh( grassGeo, new THREE.MeshStandardMaterial( { color: '#20cc25' } ) );
-    grassMesh.translateY( heightAdjust );
-
-    const dirtExtrudeSettings = { depth: dirtDepth, bevelEnabled: true, bevelSegments: 4, steps: 4, bevelSize: dirtHeight / 2, bevelThickness: dirtHeight };
-
-    const dirtGeo = new THREE.ExtrudeGeometry( islandDirt, dirtExtrudeSettings );
-    dirtGeo.rotateX( 1.570796 );
-    const dirtMesh = new THREE.Mesh( dirtGeo, new THREE.MeshStandardMaterial( { color: '#ccaa44' } ) );
-    dirtMesh.translateY( heightAdjust - dirtHeight + 0.01 /* prevents clipping */ );
-
-    const stoneExtrudeSettings = { depth: stoneDepth, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: stoneHeight / 4, bevelThickness: stoneHeight };
-
-    const stoneGeo = new THREE.ExtrudeGeometry( islandStone, stoneExtrudeSettings );
-    stoneGeo.rotateX( 1.570796 );
-    const stoneMesh = new THREE.Mesh( stoneGeo, new THREE.MeshStandardMaterial( { color: '#bbbbbb' } ) );
-    stoneMesh.translateY( heightAdjust - stoneHeight );
+    // Extruding each shape
+    extrudeIslandSegment( islandGrass, grassDepth, 1, grassHeight, grassHeight, '#20cc25', heightAdjust );
+    extrudeIslandSegment( islandDirt, dirtDepth, 4, ( dirtHeight / 2 ), dirtHeight, '#ccaa44', ( heightAdjust - dirtHeight + 0.01 /* prevents clipping */ ) );
+    extrudeIslandSegment( islandStone, stoneDepth, 3, ( stoneHeight / 4 ), stoneHeight, '#bbbbbb', ( heightAdjust - stoneHeight ) );
 
     outputReady = true;
-
-    // buildRoom(islandDNA);
 
     addLights(0xffffff, grassRadius*1.2, 2);
 
     addCamera( grassRadius*1.5, 24);
 
-    island.add(grassMesh);
-    island.add(dirtMesh);
-    island.add(stoneMesh);
-
     scene.add(island);
 
 }
 
-// Returns a radial lenght based on 
+function returnRandomPointOnCircle( radius, variance, angle ) {
+    let x = ( radius + ( variance * Math.random() ) ) * Math.sin( ( a * degToRadConst ) );
+    let y = ( radius + ( variance * Math.random() ) ) * Math.cos( ( a * degToRadConst ) );
+    return [ x, y ];
+}
+
+function drawIslandSegment( shape, x, y, angle ) {
+    if( angle == 0 ) {
+        shape.moveTo( x, y);
+    }
+    shape.lineTo( x, y );
+}
+
+function extrudeIslandSegment( shape, shapeDepth, bevelSegments, bevelSize, bevelThickness, color, heightAdjust ) {
+    const extrudeSettings = { depth: shapeDepth, bevelEnabled: true, bevelSegments: bevelSegments, steps: 1, bevelSize: bevelSize, bevelThickness: bevelThickness };
+
+    const shapeGeo = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+    shapeGeo.rotateX( 1.570796 );
+    const shapeMesh = new THREE.Mesh( shapeGeo, new THREE.MeshStandardMaterial( { color: color } ) );
+    shapeMesh.translateY( heightAdjust );
+    island.add( shapeMesh );
+}
 
 // Room Creation
 
@@ -258,13 +245,8 @@ function createRoom() {
     outputReady = true;
 
 }
-/*
-function createStructure() {
-    createFoundation();
-    createLevels();
-    createTop();
-}
-*/
+
+
 // Abstracting out the mesh constructor to work off 'DNA'
 
 function buildRoom( roomDNA ) {                         // DNA: x, y, z, type, rotation, color, emmissiveIntensity
@@ -349,14 +331,12 @@ function setMaterial( color, emissive, roughness, metalness ) {
 }
 
 // Checks if unique - Not really used, as list is reset on load.  Would only be useful if a DNA List was maintained. Credit Hashlips
-
 const isDnaUnique = (_DnaList = [], _dna = []) => {
     let foundDna = _DnaList.find((i) => i.join("") === _dna.join(""));
     return foundDna == undefined ? true : false;
 };
 
 // Clearing Objects and resetting for another object
-
 function resetShape() {
     scene.clear();
     shape.clear();
@@ -407,19 +387,12 @@ function addCamera(radius, height) {
 
 // Controls
 
-var islandRotate = false;
 /*
-canvasMain.addEventListener('mousedown', () => {
-    islandRotate = true;
-} )
-
-canvasMain.addEventListener('mouseup', () => {
-    islandRotate = false;
-} )
-*/
+var islandRotate = false;
 
 document.addEventListener('keydown', (e) => OnKeyDown_(e), false);
 document.addEventListener('keyup', (e) => OnKeyUp_(e), false);
+*/
 
 var forward, left, right, backward = false;
 
@@ -477,7 +450,7 @@ glbDownloadButton.addEventListener('click', e => glbDownload() )
 const pngDownloadButton = document.getElementById('downloadPNG')
 pngDownloadButton.addEventListener('click', e => pngDownload() )
 */
-// Download GLB
+// Download GLB - Not used currently may implement later.
 
 function glbDownload() {
     const exporter = new GLTFExporter();
@@ -506,7 +479,7 @@ function save(blob, fileName) {
     link.click();
 }
 
-// Download PNG
+// Download PNG - Not used currently may implement later.
 
 function pngDownload() {
 
@@ -532,6 +505,7 @@ const worldAxis = new THREE.Vector3( 0, 1, 0);
 var verticalVelocity = 0.0;
 var rotationVelocity = 0.0;
 
+// Keystrokes to movement
 function updateCamera( elapsedTime ) {
     if( 0.5 >= Math.abs(verticalVelocity) ) {
         if ( forward ) {
