@@ -387,12 +387,10 @@ function addCamera(radius, height) {
 
 // Controls
 
-/*
 var islandRotate = false;
 
 document.addEventListener('keydown', (e) => OnKeyDown_(e), false);
 document.addEventListener('keyup', (e) => OnKeyUp_(e), false);
-*/
 
 var forward, left, right, backward = false;
 
