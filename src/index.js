@@ -1,5 +1,3 @@
-// import { OrbitControls } from "./OrbitControls"
-
 
 // Canvas
 
@@ -50,14 +48,21 @@ camera.lookAt(0,0,0);
 
 // Objects & Global Vars
 
-let room = new THREE.Object3D();
-const cube = new THREE.BoxGeometry( 1, 1, 1 );                  // x, y, z
-const cone = new THREE.ConeGeometry( .5, 1, 4 );                // r, h, rSeg, hSeg
-const cylinder = new THREE.CylinderGeometry( .5, .5, 1, 16 );     // rTop, rBottom, h, rSeg, hSeg
-const sphere = new THREE.SphereGeometry( .5, 20, 16 );           // r, rSeg, hSeg
-const torus = new THREE.TorusGeometry( .4, 0.1, 16, 16 );        // r, tR, rSeg, tSeg
-var shapeLength = 0;
-var roomDNA = [];
+
+// Shape Presets
+
+// Right Triangle - Need to tweak to center
+const rightTriangleShape = new THREE.Shape();
+
+rightTriangleShape.moveTo( -.5, -.5 );
+rightTriangleShape.lineTo( -.5, .5 );
+rightTriangleShape.lineTo( .5, -.5 );
+rightTriangleShape.closePath();
+
+const extrudeSettings = { depth: 1, bevelEnabled: false };  // currently universal
+
+// Structure Vars
+let structure = new THREE.Object3D();
 var structureDNA = [];
 var dnaList = [];
 let lights = new THREE.Object3D();
@@ -65,47 +70,11 @@ var outputReady = false;
 
 const degToRadConst = ( Math.PI/ 180 )
 
-// Shape Presets
-
-// Right Triangle
-const rightTriangle = new THREE.Shape();
-
-rightTriangle.moveTo( 0, 0 );
-rightTriangle.lineTo( 0, 1 );
-rightTriangle.lineTo( 1, 0 );
-rightTriangle.closePath();
-
-// Frame
-const imageFrame = new THREE.Shape();
-
-imageFrame.moveTo( 0, 0 );
-imageFrame.lineTo( 1, 0 );
-imageFrame.lineTo( 1, 1 );
-imageFrame.lineTo( 0, 1 );
-imageFrame.lineTo( 0, 0 );
-imageFrame.moveTo( 0.1, 0.1 );
-imageFrame.moveTo( 0.9, 0.1 );
-imageFrame.moveTo( 0.9, 0.9 );
-imageFrame.moveTo( 0.1, 0.9 );
-
-
-/* Shape Testing
-const extrudeSettings = { depth: 1, bevelEnabled: false };
-
-const rightTriangleGeo = new THREE.ExtrudeGeometry( rightTriangle, extrudeSettings );
-const rightTriangleMesh = new THREE.Mesh( rightTriangleGeo, new THREE.MeshBasicMaterial() );
-
-const imageFrameGeo = new THREE.ExtrudeGeometry( imageFrame, extrudeSettings );
-const imageFrameMesh = new THREE.Mesh( imageFrameGeo, new THREE.MeshBasicMaterial() );
-
-scene.add( rightTriangleMesh );
-scene.add( imageFrameMesh );
-*/
-
-// Island Creation
+// Island Creation - Most of these variables will disappear in final implementation
 
 let island = new THREE.Object3D();
 var islandDNA = [];
+var islandReady = false;
 
 const islandGrass = new THREE.Shape();
 const grassRadius = 12;
@@ -125,7 +94,9 @@ const stoneVariance = 2;
 const stoneHeight = 10;
 const stoneDepth = 100;
 
-function createIsland() {
+
+// Need to refactor this into a DNA system like the structure. May make this holder wallet based rather than part of the NFT.
+function generateIsland() {
 
     // Shapes Method
 
@@ -151,13 +122,13 @@ function createIsland() {
     extrudeIslandSegment( islandDirt, dirtDepth, 4, ( dirtHeight / 2 ), dirtHeight, '#ccaa44', ( heightAdjust - dirtHeight + 0.01 /* prevents clipping */ ) );
     extrudeIslandSegment( islandStone, stoneDepth, 3, ( stoneHeight / 4 ), stoneHeight, '#bbbbbb', ( heightAdjust - stoneHeight ) );
 
-    outputReady = true;
+    islandReady = true;
 
     addLights(0xffffff, grassRadius*1.2, 2);
 
-    addCamera( grassRadius*1.5, 24);
+    addCamera( grassRadius*2, 6);
 
-    scene.add(island);
+    scene.add( island );
 
 }
 
@@ -184,88 +155,83 @@ function extrudeIslandSegment( shape, shapeDepth, bevelSegments, bevelSize, beve
     island.add( shapeMesh );
 }
 
-// Room Creation
+// Randomized 'Structure'
 
-function createRoom() {
+function generateStructure() {
 
-    let [x,y,z] = [0,0,0]
+    let [ x, y, z ] = [ -5, 0, -5 ]
 
     // Creates a lazily random configuration of blocks
-    while (shapeLength < 12) {
+    while ( y < 13 ) {
 
-        let type = Math.floor(Math.random() * 7);
-        let rotation = Math.floor(Math.random() * 6);
-        console.log(`type: ${type} rotation: ${rotation}`);
-        let color = '#' + Math.floor(Math.random() * 255).toString(16) + Math.floor(Math.random() * 255).toString(16) + Math.floor(Math.random() * 255).toString(16);
-        let emissive = Math.random();
-        let roughness = Math.random();
-        let metalness = Math.random();
-        roomDNA.push([ x, y, z, type, rotation, color, emissive, roughness, metalness]);
-        let rand = Math.random();
-        if(rand > .6666) {
+        while ( x < 6 ) {
+            while ( z < 6 ) {
+                let color = colorCreator();
+                //                  coords    type  (excluding right triangles for now)     rotation                    color   emmissive   metalness
+                structureDNA.push( [ x, y, z, Math.floor( Math.random() * 6 ), Math.floor( Math.random() * 6 ), color, Math.random(), Math.random() ] );
+                z++;
+            }
+            z = -5;
             x++;
-        } else if(rand > .3333) {
-            y++;
-        } else {
-            z++;
         }
-        shapeLength++;
+        x = -5;
+        y++;
     }
-/*
-    if (isDnaUnique(dnaList,roomDNA)) {
-        dnaList.push(roomDNA);
-    } else {
-        resetShape();
+
+    createStructure( structureDNA );
+
+    outputReady = true;
+
+}
+
+// returns random hex color
+function colorCreator() {
+    let color = "";
+    for ( i = 0; i <= 2; i++ ) {  // r, g, b
+        let temp = Math.floor( Math.random() * 255 ).toString( 16 );
+        while( temp.length < 2 ) {
+            temp = '0' + temp;
+        }
+        color = color + temp;
     }
-*/
-    buildRoom( roomDNA );
-    // console.log( roomDNA.length );
+    return '#' + color;
+}
 
-    // Moving shape components so that they are centered - Removed for room eventually
+// structure Creation
 
-    let [shapeX, shapeY, shapeZ] = [((x)/2.0),((y)/2.0),((z)/2.0)];
-    room.children.forEach(child => {
-        child.translateX(-shapeX);
-        child.translateY(-shapeY);
-        child.translateZ(-shapeZ);
-    });
+function createStructure( _structureDNA ) {
 
-    scene.add(room);
+    buildStructure( _structureDNA );
+    // console.log( structureDNA.length );
 
-    // Calculating distance for Lights and Camera
-    let radius = Math.sqrt(shapeX**2 + shapeZ**2);
+    // Moving shape components so that they are centered - Removed for structure eventually
 
-    // Lights
-    // addLights(0xffffff, radius, shapeY);
-
-    // Camera
-    // addCamera(radius, shapeY);
+    scene.add( structure );
 
     // Action
     outputReady = true;
 
 }
 
+// Abstracting out the mesh constructor to work off 'DNA' probably should just replace create structure
 
-// Abstracting out the mesh constructor to work off 'DNA'
-
-function buildRoom( roomDNA ) {                         // DNA: x, y, z, type, rotation, color, emmissiveIntensity
-    roomDNA.forEach( ( meshInfo ) => {
-        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4], meshInfo[5], meshInfo[6] );
+function buildStructure( _structureDNA ) {                         // DNA: x, y, z, type, rotation, color, emmissiveIntensity, metalness
+    _structureDNA.forEach( ( meshInfo ) => {
+        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4], meshInfo[5], meshInfo[6], meshInfo )
     });
 }
 
 // Adds a Cube to the Shape
 
-function addMesh(x, y, z, type, rotation, color, emmissiveIntensity){
-    let nextMesh = getMesh( type, rotation, color );
+function addMesh(x, y, z, type, rotation, color, emmissiveIntensity, metalness ) {
+    let nextMesh = getMesh( type, rotation, color, emmissiveIntensity, metalness );
     if(nextMesh != null) {
-        nextMesh.position.set(x,y,z);
-        room.add(nextMesh)
+        nextMesh.position.set( x, y, z);
+        structure.add( nextMesh );
     }
 }
 
-function getMesh( type, rotation, color = '#00ffff', emissive = 1, roughness = 1, metalness = 0 ) {
+function getMesh( type = 0, rotation = 0, color = '#00ffff', emissive = 1, roughness = 1, metalness = 0 ) {
     let tempGeometry = setBaseMesh( type );
     setMeshRotation( tempGeometry, rotation );
     let tempMaterial = setMaterial( color, emissive, roughness, metalness );
@@ -273,20 +239,22 @@ function getMesh( type, rotation, color = '#00ffff', emissive = 1, roughness = 1
 }
 
 // Returns base mesh geometry
-function setBaseMesh(type){
-    switch (type) {
+function setBaseMesh( type ){
+    switch ( type ) {
         case 0:             // 1x1 Cube
-            return new THREE.BoxGeometry( 1, 1, 1 );                                        // x, y, z
+            return new THREE.BoxGeometry( 1, 1, 1 );                                                // x, y, z
         case 1:             // 1x1 Pyramid
-            return new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );           // r, h, rSeg, hSeg
+            return new THREE.ConeGeometry( 0.707106, 1, 4, 1, false, 0.7853982 );                   // r, h, rSeg, hSeg
         case 2:             // Flat-top Half Pyramid
-            return new THREE.CylinderGeometry( 0.707106, 0.353553, 1, 4, 1, false, 0.7853982 );         // rTop, rBottom, h, rSeg, hSeg
+            return new THREE.CylinderGeometry( 0.707106, 0.353553, 1, 4, 1, false, 0.7853982 );     // rTop, rBottom, h, rSeg, hSeg
         case 3:             // .5x1 Rectangle
-            return new THREE.BoxGeometry( 0.5, 0.5, 1 );                                        // x, y, z
+            return new THREE.BoxGeometry( 0.5, 0.5, 1 );                                            // x, y, z
         case 4:             // 1x1 Cylinder
-            return new THREE.CylinderGeometry( 0.5, 0.5, 1, 8 );         // rTop, rBottom, h, rSeg, hSeg
+            return new THREE.CylinderGeometry( 0.5, 0.5, 1, 8 );                                    // rTop, rBottom, h, rSeg, hSeg
         case 5:             // .5x1 Pyramid
-            return new THREE.ConeGeometry( 0.353553, 1, 4, 1, false, 0.7853982 );           // r, h, rSeg, hSeg
+            return new THREE.ConeGeometry( 0.353553, 1, 4, 1, false, 0.7853982 );                   // r, h, rSeg, hSeg
+        case 6:             // Right Triangle
+            return new THREE.ExtrudeGeometry( rightTriangleShape, extrudeSettings);                 // Right Triangle Premade
         default:            // Empty
             return new THREE.BoxGeometry( 0, 0, 0);                     
     }
@@ -331,12 +299,14 @@ function setMaterial( color, emissive, roughness, metalness ) {
 }
 
 // Checks if unique - Not really used, as list is reset on load.  Would only be useful if a DNA List was maintained. Credit Hashlips
+/*
 const isDnaUnique = (_DnaList = [], _dna = []) => {
     let foundDna = _DnaList.find((i) => i.join("") === _dna.join(""));
     return foundDna == undefined ? true : false;
 };
-
+*/
 // Clearing Objects and resetting for another object
+/*
 function resetShape() {
     scene.clear();
     shape.clear();
@@ -345,7 +315,7 @@ function resetShape() {
     shapeDNA = [];
     outputReady = false;
 }
-
+*/
 // Positions and adds lights to scene based on object dimensions, includes color option, but currently isn't used.
 function addLights(color, radius, height) { // Intensity calcs are somewhat frivolous.
     let lightColor = color;
@@ -380,7 +350,7 @@ function addLights(color, radius, height) { // Intensity calcs are somewhat friv
 
 // Positions and adds camera
 function addCamera(radius, height) {
-    camera.position.set(0,( 4 + ( height / 12 ) ),( 8 + radius ));
+    camera.position.set(0,( height ),( radius ));
     camera.lookAt(0,0,0);
     scene.add(camera);
 }
@@ -455,7 +425,7 @@ function glbDownload() {
     exporter.parse(
         scene,
         function(result) {
-            saveArrayBuffer(result, `Shape-${shapeDNA.toString()}.glb`)
+            saveArrayBuffer(result, `Shape-${structureDNA.toString()}.glb`)
         },
         {
             binary: true
@@ -486,7 +456,7 @@ function pngDownload() {
     	var a = document.createElement('a');
       var url = URL.createObjectURL(blob);
       a.href = url;
-      a.download = `Shape-${shapeDNA.toString()}.png`;
+      a.download = `Shape-${structureDNA.toString()}.png`;
       a.click();
     }, 'image/png', 1.0);
 }
@@ -543,29 +513,22 @@ const tick = () =>
 
     // Create Island
 
-    if( !outputReady ) {
-        createIsland();
+    if( !islandReady ) {
+        generateIsland();
     }
 
-    // Create New Shape if there isn't one, 
-/*
-    if( shapeLength == 0 && outputReady ) {
-        // console.log('attempting shape creation');
-        createRoom();
+    // Create New Structure if there isn't one, 
+
+    if( !outputReady ) {
+        generateStructure();
     } 
-*/
-    // Update objects
-/*
-    if(islandRotate){
-    // room.rotation.y = .25 * elapsedTime;
-        island.rotation.y = .1 * elapsedTime;
-    }
-*/
+
     // Controls
 
     updateCamera( elapsedTime );
     camera.translateY( verticalVelocity );
     island.rotateOnWorldAxis( worldAxis, rotationVelocity );
+    structure.rotateOnWorldAxis( worldAxis, rotationVelocity );
 
     // controls.update();
 
