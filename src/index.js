@@ -204,8 +204,6 @@ function createStructure( _structureDNA ) {
     buildStructure( _structureDNA );
     // console.log( structureDNA.length );
 
-    // Moving shape components so that they are centered - Removed for structure eventually
-
     scene.add( structure );
 
     // Action
@@ -217,7 +215,7 @@ function createStructure( _structureDNA ) {
 
 function buildStructure( _structureDNA ) {                         // DNA: x, y, z, type, rotation, color, emmissiveIntensity, metalness
     _structureDNA.forEach( ( meshInfo ) => {
-        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4], meshInfo[5], meshInfo[6], meshInfo )
+        addMesh(meshInfo[0], meshInfo[1], meshInfo[2], meshInfo[3], meshInfo[4], meshInfo[5], meshInfo[6], meshInfo[7] )
     });
 }
 
