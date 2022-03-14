@@ -103,7 +103,7 @@ function generateIsland() {
     let x, y;
 
     // Drawing each shape
-    for( a = 0; a < 360; a+=15 ){
+    for( var a = 0; a < 360; a += 15 ){
         [ x, y ] = returnRandomPointOnCircle( grassRadius, grassVariance, a );
         drawIslandSegment( islandGrass, x, y, a );
         grassActual = Math.sqrt( x**2 + y**2 );
@@ -133,8 +133,8 @@ function generateIsland() {
 }
 
 function returnRandomPointOnCircle( radius, variance, angle ) {
-    let x = ( radius + ( variance * Math.random() ) ) * Math.sin( ( a * degToRadConst ) );
-    let y = ( radius + ( variance * Math.random() ) ) * Math.cos( ( a * degToRadConst ) );
+    let x = ( radius + ( variance * Math.random() ) ) * Math.sin( ( angle * degToRadConst ) );
+    let y = ( radius + ( variance * Math.random() ) ) * Math.cos( ( angle * degToRadConst ) );
     return [ x, y ];
 }
 
@@ -187,7 +187,7 @@ function generateStructure() {
 // returns random hex color
 function colorCreator() {
     let color = "";
-    for ( i = 0; i <= 2; i++ ) {  // r, g, b
+    for ( var i = 0; i <= 2; i++ ) {  // r, g, b
         let temp = Math.floor( Math.random() * 255 ).toString( 16 );
         while( temp.length < 2 ) {
             temp = '0' + temp;
